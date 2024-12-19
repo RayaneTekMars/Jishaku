@@ -63,7 +63,7 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
   // Création des vagues de particules d'avalanche
   const createAvalancheWave = (waveNumber: number): TransitionParticle[] => {
     const screenWidth = window.innerWidth;
-    const particlesPerWave = 20;
+    const particlesPerWave = 100;
 
     return Array.from({ length: particlesPerWave }, () => {
       const startX = Math.random() * screenWidth;
@@ -81,7 +81,7 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
         isTransitionParticle: true,
         wobble: Math.random() * 0.1,
         wobbleSpeed: Math.random() * 0.05,
-        acceleration: 1 + (Math.random() * 0.1)
+        acceleration: 1 + (Math.random() * 0.2)
       };
     });
   };
