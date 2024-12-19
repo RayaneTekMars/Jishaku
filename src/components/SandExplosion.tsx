@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Suna from "@/components/Suna";
 
 interface BaseParticle {
   id: string | number;
@@ -49,7 +50,23 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
     } as ExplosionParticle));
   });
 
+  const [iconScale, setIconScale] = useState(0);
+  const [iconOpacity, setIconOpacity] = useState(0);
   const [animationComplete, setAnimationComplete] = useState(false);
+
+  useEffect(() => {
+    if (!isTransitioning) {
+      setIconScale(0);
+      setTimeout(() => {
+        setIconScale(1);
+        setIconOpacity(1);
+      }, 100);
+
+      setTimeout(() => {
+        setIconOpacity(0);
+      }, 800);
+    }
+  }, [isTransitioning]);
 
   const createAvalancheWave = (waveNumber: number): TransitionParticle[] => {
     const screenWidth = window.innerWidth;
@@ -149,6 +166,16 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
           }}
         />
       ))}
+      <div
+        className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-amber-800"
+        style={{
+          transform: `translate(-50%, -50%) scale(${iconScale})`,
+          opacity: iconOpacity,
+          transition: 'all 0.3s ease-out'
+        }}
+      >
+        <Suna width={128} height={128} strokeWidth={1.5} />
+      </div>
     </div>
   );
 };

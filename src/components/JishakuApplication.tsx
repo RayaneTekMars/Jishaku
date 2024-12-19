@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
-import { Mountain, Heart, Target, Book, User, ArrowRight, ArrowLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Target, Book, User, ArrowRight, ArrowLeft } from 'lucide-react';
 import FloatingSand from "@/components/FloatingSand";
 import Suna from "@/components/Suna";
 
@@ -17,16 +17,6 @@ interface Section {
   title: string;
   content: string;
   needsRiddle: boolean;
-}
-
-interface SandParticle {
-  id: number;
-  x: number;
-  y: number;
-  angle: number;
-  speed: number;
-  size: number;
-  life: number;
 }
 
 const riddles: Record<RiddleSection, Riddle> = {
@@ -84,7 +74,6 @@ const sections: Record<SectionKey, Section> = {
 
 const IbukiCandidature = () => {
   const [currentSection, setCurrentSection] = useState<SectionKey>('intro');
-  const [sandParticles, setSandParticles] = useState<SandParticle[]>([]);
   const [riddleAnswer, setRiddleAnswer] = useState('');
 
   const [showError, setShowError] = useState(false);
@@ -119,21 +108,6 @@ const IbukiCandidature = () => {
       setCurrentSection(sectionKeys[currentIndex - 1]);
     }
   };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSandParticles(prev =>
-        prev.map(particle => ({
-          ...particle,
-          x: particle.x + Math.cos(particle.angle) * particle.speed,
-          y: particle.y + Math.sin(particle.angle) * particle.speed,
-          life: particle.life - 1
-        })).filter(particle => particle.life > 0)
-      );
-    }, 16);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const SectionIcon = ({ section }: { section: SectionKey }) => {
     switch (section) {
