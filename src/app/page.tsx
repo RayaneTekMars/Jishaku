@@ -15,7 +15,6 @@ export default function Home() {
 
   const handleAnimationComplete = () => {
     setIsTransitioning(true);
-    // Commencer à montrer le contenu immédiatement quand la transition commence
     setShowContent(true);
   };
 
@@ -30,8 +29,8 @@ export default function Home() {
         <IbukiCandidature />
       </div>
 
-      {/* L'animation de sable reste au-dessus */}
-      <div className={`fixed inset-0 z-50 pointer-events-none`}>
+      {/* L'animation de sable disparaît progressivement */}
+      <div className={`fixed inset-0 z-50 ${isTransitioning ? 'pointer-events-none' : ''}`}>
         <SandExplosion
           onAnimationComplete={handleAnimationComplete}
           isTransitioning={isTransitioning}

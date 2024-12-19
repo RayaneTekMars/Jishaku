@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Suna from "@/components/Suna";
 
 interface BaseParticle {
@@ -33,44 +33,72 @@ interface SandExplosionProps {
 }
 
 const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTransitioning }) => {
-  const [particles, setParticles] = useState<Particle[]>(() => {
-    const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 500;
-    const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 500;
-
-    return Array.from({ length: 100 }, () => ({
-      id: Math.random(),
-      x: centerX,
-      y: centerY,
-      angle: Math.random() * Math.PI * 2,
-      speed: Math.random() * 15 + 5,
-      size: Math.random() * 4 + 2,
-      life: 100,
-      opacity: 1,
-      isTransitionParticle: false
-    } as ExplosionParticle));
-  });
-
-  const [iconScale, setIconScale] = useState(0);
-  const [iconOpacity, setIconOpacity] = useState(0);
+  const [particles, setParticles] = useState<Particle[]>([]);
+  const [isExploding, setIsExploding] = useState(false);
+  const [iconScale, setIconScale] = useState(1);
+  const [iconOpacity, setIconOpacity] = useState(1);
   const [animationComplete, setAnimationComplete] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (!isTransitioning) {
-      setIconScale(0);
-      setTimeout(() => {
-        setIconScale(1);
-        setIconOpacity(1);
-      }, 100);
-
-      setTimeout(() => {
-        setIconOpacity(0);
-      }, 800);
+    // Création et configuration de l'audio avec gestion d'erreur
+    try {
+      audioRef.current = new Audio('/gaara.wav');
+      audioRef.current.volume = 0.2;
+    } catch (error) {
+      console.warn('Audio non supporté ou fichier manquant:', error);
     }
-  }, [isTransitioning]);
+  }, []);
+
+  const startExplosion = () => {
+    if (!isExploding) {
+      setIsExploding(true);
+      if (audioRef.current) {
+        try {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(error => {
+            console.warn('Erreur lors de la lecture audio:', error);
+          });
+        } catch (error) {
+          console.warn('Erreur audio:', error);
+        }
+      }
+
+      const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 500;
+      const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 500;
+
+      // Créer les particules initiales
+      const initialParticles = Array.from({ length: 100 }, () => ({
+        id: Math.random(),
+        x: centerX,
+        y: centerY,
+        angle: Math.random() * Math.PI * 2,
+        speed: Math.random() * 15 + 5,
+        size: Math.random() * 4 + 2,
+        life: 100,
+        opacity: 1,
+        isTransitionParticle: false
+      } as ExplosionParticle));
+
+      setParticles(initialParticles);
+      setIconScale(0);
+      setIconOpacity(0);
+
+      // Déclencher les vagues d'avalanche après l'explosion initiale
+      setTimeout(() => {
+        const waves = Array.from({ length: 5 }, (_, i) => createAvalancheWave(i));
+        waves.forEach((wave, index) => {
+          setTimeout(() => {
+            setParticles(prev => [...prev, ...wave]);
+          }, index * 100);
+        });
+      }, 500);
+    }
+  };
 
   const createAvalancheWave = (waveNumber: number): TransitionParticle[] => {
     const screenWidth = window.innerWidth;
-    const particlesPerWave = 10;
+    const particlesPerWave = 100;
 
     return Array.from({ length: particlesPerWave }, () => {
       const startX = Math.random() * screenWidth;
@@ -94,22 +122,12 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
   };
 
   useEffect(() => {
-    if (isTransitioning) {
-      const waves = Array.from({ length: 5 }, (_, i) => createAvalancheWave(i));
-
-      waves.forEach((wave, index) => {
-        setTimeout(() => {
-          setParticles(prev => [...prev, ...wave]);
-        }, index * 100);
-      });
-    }
-  }, [isTransitioning]);
-
-  useEffect(() => {
     if (animationComplete && !isTransitioning) {
       onAnimationComplete();
       return;
     }
+
+    if (!isExploding) return;
 
     const interval = setInterval(() => {
       setParticles(prev => {
@@ -138,8 +156,9 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
 
         const remainingParticles = updatedParticles.filter(particle => particle.life > 0);
 
-        if (remainingParticles.length === 0 && !isTransitioning) {
+        if (remainingParticles.length === 0 && isExploding) {
           setAnimationComplete(true);
+          setIsExploding(false);
         }
 
         return remainingParticles;
@@ -147,10 +166,11 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
     }, 16);
 
     return () => clearInterval(interval);
-  }, [animationComplete, onAnimationComplete, isTransitioning]);
+  }, [animationComplete, onAnimationComplete, isTransitioning, isExploding]);
 
   return (
-    <div className={`fixed inset-0 ${isTransitioning ? 'bg-transparent' : 'bg-amber-100'} z-50`}>
+    <div className={`fixed inset-0 ${isTransitioning ? 'bg-transparent' : 'bg-amber-100'} z-50 
+                    transition-all duration-500 ${isTransitioning || animationComplete ? 'opacity-0' : 'opacity-100'}`}>
       {particles.map(particle => (
         <div
           key={particle.id}
@@ -166,16 +186,25 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
           }}
         />
       ))}
-      <div
-        className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-amber-800"
+      <button
+        className="absolute left-1/2 top-1/2 text-amber-800 cursor-pointer
+                   hover:text-amber-600 focus:outline-none group"
         style={{
           transform: `translate(-50%, -50%) scale(${iconScale})`,
           opacity: iconOpacity,
           transition: 'all 0.3s ease-out'
         }}
+        onClick={startExplosion}
       >
-        <Suna width={128} height={128} strokeWidth={1.5} />
-      </div>
+        <div className="relative">
+          <div className="absolute inset-0 bg-amber-200 rounded-full opacity-0
+                        group-hover:opacity-100 group-hover:animate-ping" />
+          <div className="transform group-hover:scale-110 group-hover:rotate-3
+                        transition-all duration-300 ease-out">
+            <Suna width={128} height={128} strokeWidth={1.5} />
+          </div>
+        </div>
+      </button>
     </div>
   );
 };
