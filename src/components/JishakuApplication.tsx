@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { Mountain, Heart, Target, Book, User, ArrowRight, ArrowLeft } from 'lucide-react';
+import FloatingSand from "@/components/FloatingSand";
+import Suna from "@/components/Suna";
 
 type RiddleSection = 'chapter1' | 'chapter2' | 'chapter3';
 type NonRiddleSection = 'intro' | 'character' | 'objectives' | 'hrp';
@@ -133,26 +135,6 @@ const IbukiCandidature = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const { clientX, clientY } = e;
-
-    setSandParticles(prev => {
-      if (prev.length >= 30) return prev;
-
-      const newParticles = Array.from({ length: Math.floor(Math.random() * 2) + 1 }, () => ({
-        id: Math.random(),
-        x: clientX,
-        y: clientY,
-        angle: Math.random() * Math.PI * 2,
-        speed: Math.random() * 1.5 + 0.5,
-        size: Math.random() * 2 + 1,
-        life: 50
-      }));
-
-      return [...prev, ...newParticles];
-    });
-  }, []);
-
   const SectionIcon = ({ section }: { section: SectionKey }) => {
     switch (section) {
       case 'chapter1':
@@ -166,31 +148,15 @@ const IbukiCandidature = () => {
       case 'hrp':
         return <User size={24} className="text-amber-700" />;
       default:
-        return <Mountain size={24} className="text-amber-700" />;
+        return <Suna width={24} height={24} />;
     }
   };
 
   return (
     <div
       className="relative h-screen w-full bg-gradient-to-b from-amber-100 to-amber-200 overflow-hidden"
-      onMouseMove={handleMouseMove}
     >
-      {sandParticles.map(particle => (
-        <div
-          key={particle.id}
-          className="absolute rounded-full bg-amber-600 mix-blend-multiply"
-          style={{
-            left: `${particle.x}px`,
-            top: `${particle.y}px`,
-            width: `${particle.size}px`,
-            height: `${particle.size}px`,
-            opacity: particle.life / 100,
-            transform: `translate(-50%, -50%)`,
-            transition: 'all 0.016s linear'
-          }}
-        />
-      ))}
-
+      <FloatingSand />
       <div className="fixed top-0 left-0 w-full bg-amber-800/20 backdrop-blur-sm p-4 z-20">
         <div className="flex justify-center space-x-4 flex-wrap gap-y-2">
           {(Object.entries(sections) as [SectionKey, Section][]).map(([key, section]) => (
