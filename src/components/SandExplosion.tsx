@@ -45,6 +45,7 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
     try {
       audioRef.current = new Audio('/gaara.wav');
       audioRef.current.volume = 0.2;
+      audioRef.current.loop = true;
     } catch (error) {
       console.warn('Audio non supporté ou fichier manquant:', error);
     }
