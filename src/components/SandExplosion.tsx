@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import Suna from "@/components/Suna";
+import { useVolume } from '@/context/VolumeContext';
 
 interface BaseParticle {
   id: string | number;
@@ -38,68 +39,31 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
   const [iconScale, setIconScale] = useState(1);
   const [iconOpacity, setIconOpacity] = useState(1);
   const [animationComplete, setAnimationComplete] = useState(false);
+  const { volume } = useVolume();
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Initialisation de l'audio
   useEffect(() => {
-    // Création et configuration de l'audio avec gestion d'erreur
     try {
       audioRef.current = new Audio('/gaara.wav');
-      audioRef.current.volume = 0.2;
+      audioRef.current.volume = volume;
       audioRef.current.loop = true;
     } catch (error) {
       console.warn('Audio non supporté ou fichier manquant:', error);
     }
   }, []);
 
-  const startExplosion = () => {
-    if (!isExploding) {
-      setIsExploding(true);
-      if (audioRef.current) {
-        try {
-          audioRef.current.currentTime = 0;
-          audioRef.current.play().catch(error => {
-            console.warn('Erreur lors de la lecture audio:', error);
-          });
-        } catch (error) {
-          console.warn('Erreur audio:', error);
-        }
-      }
-
-      const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 500;
-      const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 500;
-
-      // Créer les particules initiales
-      const initialParticles = Array.from({ length: 100 }, () => ({
-        id: Math.random(),
-        x: centerX,
-        y: centerY,
-        angle: Math.random() * Math.PI * 2,
-        speed: Math.random() * 15 + 5,
-        size: Math.random() * 4 + 2,
-        life: 100,
-        opacity: 1,
-        isTransitionParticle: false
-      } as ExplosionParticle));
-
-      setParticles(initialParticles);
-      setIconScale(0);
-      setIconOpacity(0);
-
-      // Déclencher les vagues d'avalanche après l'explosion initiale
-      setTimeout(() => {
-        const waves = Array.from({ length: 5 }, (_, i) => createAvalancheWave(i));
-        waves.forEach((wave, index) => {
-          setTimeout(() => {
-            setParticles(prev => [...prev, ...wave]);
-          }, index * 100);
-        });
-      }, 500);
+  // Mise à jour du volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume;
     }
-  };
+  }, [volume]);
 
+  // Création des vagues de particules d'avalanche
   const createAvalancheWave = (waveNumber: number): TransitionParticle[] => {
     const screenWidth = window.innerWidth;
-    const particlesPerWave = 100;
+    const particlesPerWave = 20;
 
     return Array.from({ length: particlesPerWave }, () => {
       const startX = Math.random() * screenWidth;
@@ -117,11 +81,61 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
         isTransitionParticle: true,
         wobble: Math.random() * 0.1,
         wobbleSpeed: Math.random() * 0.05,
-        acceleration: 1 + (Math.random() * 0.2)
+        acceleration: 1 + (Math.random() * 0.1)
       };
     });
   };
 
+  // Démarrage de l'explosion
+  const startExplosion = () => {
+    if (!isExploding) {
+      setIsExploding(true);
+
+      // Lecture du son
+      if (audioRef.current) {
+        try {
+          audioRef.current.currentTime = 0;
+          audioRef.current.play().catch(error => {
+            console.warn('Erreur lors de la lecture audio:', error);
+          });
+        } catch (error) {
+          console.warn('Erreur audio:', error);
+        }
+      }
+
+      // Création des particules initiales
+      const centerX = typeof window !== 'undefined' ? window.innerWidth / 2 : 500;
+      const centerY = typeof window !== 'undefined' ? window.innerHeight / 2 : 500;
+
+      const initialParticles = Array.from({ length: 100 }, () => ({
+        id: Math.random(),
+        x: centerX,
+        y: centerY,
+        angle: Math.random() * Math.PI * 2,
+        speed: Math.random() * 15 + 5,
+        size: Math.random() * 4 + 2,
+        life: 100,
+        opacity: 1,
+        isTransitionParticle: false
+      } as ExplosionParticle));
+
+      setParticles(initialParticles);
+      setIconScale(0);
+      setIconOpacity(0);
+
+      // Déclenchement des vagues d'avalanche
+      setTimeout(() => {
+        const waves = Array.from({ length: 5 }, (_, i) => createAvalancheWave(i));
+        waves.forEach((wave, index) => {
+          setTimeout(() => {
+            setParticles(prev => [...prev, ...wave]);
+          }, index * 100);
+        });
+      }, 500);
+    }
+  };
+
+  // Animation des particules
   useEffect(() => {
     if (animationComplete && !isTransitioning) {
       onAnimationComplete();
@@ -134,6 +148,7 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
       setParticles(prev => {
         const updatedParticles = prev.map(particle => {
           if (particle.isTransitionParticle) {
+            // Animation des particules de transition
             const wobbleX = Math.sin(Date.now() * particle.wobbleSpeed) * particle.wobble;
             return {
               ...particle,
@@ -144,6 +159,7 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
               life: particle.y > window.innerHeight ? 0 : particle.life
             };
           } else {
+            // Animation des particules d'explosion
             return {
               ...particle,
               x: particle.x + Math.cos(particle.angle) * particle.speed,
@@ -172,6 +188,7 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
   return (
     <div className={`fixed inset-0 ${isTransitioning ? 'bg-transparent' : 'bg-amber-100'} z-50 
                     transition-all duration-500 ${isTransitioning || animationComplete ? 'opacity-0' : 'opacity-100'}`}>
+      {/* Rendu des particules */}
       {particles.map(particle => (
         <div
           key={particle.id}
@@ -187,6 +204,8 @@ const SandExplosion: React.FC<SandExplosionProps> = ({ onAnimationComplete, isTr
           }}
         />
       ))}
+
+      {/* Logo cliquable */}
       <button
         className="absolute left-1/2 top-1/2 text-amber-800 cursor-pointer
                    hover:text-amber-600 focus:outline-none group"
